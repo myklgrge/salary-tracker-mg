@@ -1,0 +1,320 @@
+/* Remove number input spinners for all browsers */
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Modern, beautiful, mobile-friendly styles for Salary Calculator */
+
+:root {
+  --primary: #6366f1;
+  --primary-dark: #4338ca;
+  --accent: #fbbf24;
+  --bg: #f8fafc;
+  --surface: #fff;
+  --border: #e5e7eb;
+  --text: #1e293b;
+  --muted: #64748b;
+  --danger: #ef4444;
+  --radius: 16px;
+  --shadow: 0 4px 24px 0 rgba(0,0,0,0.08);
+}
+
+[data-theme="dark"] {
+  --primary: #818cf8;
+  --primary-dark: #6366f1;
+  --accent: #fbbf24;
+  --bg: #181a20;
+  --surface: #23263a;
+  --border: #32344a;
+  --text: #f1f5f9;
+  --muted: #a5b4fc;
+  --danger: #ef4444;
+  --radius: 16px;
+  --shadow: 0 4px 24px 0 rgba(0,0,0,0.18);
+}
+
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  transition: background 0.2s, color 0.2s;
+  box-sizing: border-box;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+.salary-container {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  max-width: 1200px;
+  width: 100vw;
+  margin: 0;
+  padding: 24px 20px;
+  border: 1px solid var(--border);
+  transition: background 0.2s, color 0.2s, border 0.2s;
+  min-height: 100vh;
+}
+
+.salary-container h2 {
+  margin-top: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  letter-spacing: -1px;
+}
+
+.salary-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.salary-fields label {
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: var(--muted);
+}
+.salary-fields input,
+.salary-fields select {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 1rem;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition: border 0.2s, background 0.2s, color 0.2s;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.salary-fields input[type="number"] {
+  text-align: center;
+  width: 100%;
+  min-width: 70px;
+  max-width: 120px;
+}
+
+.salary-fields select {
+  width: 100%;
+  min-width: 70px;
+  max-width: 120px;
+}
+.salary-fields input:focus,
+.salary-fields select:focus {
+  border-color: var(--primary);
+}
+
+.salary-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 18px;
+  font-size: 0.98rem;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.salary-table th, .salary-table td {
+  padding: 8px 6px;
+  text-align: left;
+  min-width: 80px;
+}
+.salary-table th {
+  color: var(--muted);
+  font-weight: 600;
+  border-bottom: 2px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 1;
+}
+.salary-table tr {
+  transition: background 0.15s;
+  cursor: pointer;
+}
+.salary-table tr:hover {
+  background: #f1f5f9;
+}
+.salary-table tr.sunday {
+  background: var(--sunday-bg, #fef2f2);
+  color: var(--sunday-text, #b45309);
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s;
+}
+
+[data-theme="dark"] .salary-table tr.sunday {
+  --sunday-bg: #23263a;
+  --sunday-text: #fbbf24;
+  background: var(--sunday-bg);
+  color: var(--sunday-text);
+}
+.salary-table ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.salary-modal-bg {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(30,41,59,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.salary-modal {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 28px 20px 20px 20px;
+  min-width: 320px;
+  max-width: 95vw;
+  width: 100%;
+  max-width: 400px;
+  animation: modalIn 0.2s cubic-bezier(.4,2,.6,1) both;
+  transition: background 0.2s, color 0.2s;
+}
+@keyframes modalIn {
+  from { transform: translateY(40px) scale(0.98); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.salary-modal h3 {
+  margin-top: 0;
+  font-size: 1.2rem;
+  color: var(--primary-dark);
+}
+.salary-modal input,
+.salary-modal select {
+  margin-right: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  font-size: 1rem;
+  background: var(--surface);
+  color: var(--text);
+  transition: background 0.2s, color 0.2s;
+}
+.salary-modal button {
+  background: none;
+  border: none;
+  color: var(--danger);
+  font-size: 1.1rem;
+  cursor: pointer;
+  margin-left: 4px;
+}
+.salary-modal .modal-actions {
+  margin-top: 16px;
+  text-align: right;
+}
+.salary-modal .modal-actions button {
+  background: var(--primary);
+  color: #fff;
+  border-radius: 8px;
+  border: none;
+  padding: 8px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-left: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.salary-modal .modal-actions button:last-child {
+  background: var(--muted);
+  color: #fff;
+}
+.salary-modal .modal-actions button:hover {
+  background: var(--primary-dark);
+}
+
+.salary-options {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 18px;
+  align-items: center;
+}
+.salary-options label {
+  font-size: 1rem;
+  color: var(--muted);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.salary-total {
+  font-weight: 700;
+  font-size: 1.4rem;
+  color: var(--primary-dark);
+  margin-top: 10px;
+  text-align: right;
+}
+
+@media (max-width: 600px) {
+  .salary-container {
+    max-width: 100vw;
+    width: 100vw;
+    padding: 16px 12px;
+    border-radius: 0;
+    border: none;
+    margin: 0;
+    min-height: 100vh;
+  }
+  .salary-fields {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    width: 100%;
+  }
+  .salary-fields input,
+  .salary-fields select {
+    font-size: 1rem;
+    padding: 10px 8px;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .salary-fields input[type="number"],
+  .salary-fields select {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .salary-modal {
+    min-width: 0;
+    padding: 16px 4vw 16px 4vw;
+  }
+  .salary-table th, .salary-table td {
+    padding: 6px 2px;
+    font-size: 0.95rem;
+  }
+}
+
+@media (min-width: 601px) {
+  .salary-container {
+    max-width: 100vw;
+    width: 100vw;
+    padding: 32px 40px;
+    border-radius: 0;
+    border: none;
+    margin: 0;
+    min-height: 100vh;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 8px;
+}
