@@ -10,6 +10,12 @@ import { ADMIN_USERNAME } from './adminConfig';
 import './modern.css';
 
 function App() {
+  // Theme state for dark/light mode
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+  useEffect(() => {
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   const [user, setUser] = useState<null | { uid: string; username?: string }>(null);
   const [loading, setLoading] = useState(true);
@@ -124,6 +130,17 @@ function App() {
             <div className="mg-login-content">
               <h2 className="mg-login-title">WELCOME</h2>
               <div className="mg-login-subtitle">Salary tracker</div>
+              
+              <div className="mg-login-theme-toggle">
+                <button 
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="mg-login-theme-btn"
+                  title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                >
+                  {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+                </button>
+              </div>
+              
               {loading ? (
                 <div className="mg-login-loading">Loading...</div>
               ) : (
@@ -223,7 +240,10 @@ function App() {
           min-height: 100vh;
           width: 100vw;
           max-width: 100vw;
-          background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 25%, #2a2a2a 50%, #3a3a3a 75%, #4a4a4a 100%);
+          background: ${theme === 'dark' 
+            ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 25%, #2a2a2a 50%, #3a3a3a 75%, #4a4a4a 100%)'
+            : 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 25%, #cbd5e1 50%, #94a3b8 75%, #64748b 100%)'
+          };
           background-size: 300% 300%;
           animation: subtleGradient 35s ease infinite;
           display: flex;
@@ -246,11 +266,16 @@ function App() {
           left: 0;
           right: 0;
           bottom: 0;
-          background: 
-            radial-gradient(circle at 15% 15%, rgba(70, 70, 70, 0.4) 0%, transparent 50%),
-            radial-gradient(circle at 85% 85%, rgba(50, 50, 50, 0.3) 0%, transparent 50%),
-            radial-gradient(circle at 50% 50%, rgba(30, 30, 30, 0.2) 0%, transparent 70%),
-            linear-gradient(45deg, rgba(10, 10, 10, 0.3) 0%, transparent 100%);
+          background: ${theme === 'dark' 
+            ? `radial-gradient(circle at 15% 15%, rgba(70, 70, 70, 0.4) 0%, transparent 50%),
+               radial-gradient(circle at 85% 85%, rgba(50, 50, 50, 0.3) 0%, transparent 50%),
+               radial-gradient(circle at 50% 50%, rgba(30, 30, 30, 0.2) 0%, transparent 70%),
+               linear-gradient(45deg, rgba(10, 10, 10, 0.3) 0%, transparent 100%)`
+            : `radial-gradient(circle at 15% 15%, rgba(255, 255, 255, 0.4) 0%, transparent 50%),
+               radial-gradient(circle at 85% 85%, rgba(241, 245, 249, 0.3) 0%, transparent 50%),
+               radial-gradient(circle at 50% 50%, rgba(226, 232, 240, 0.2) 0%, transparent 70%),
+               linear-gradient(45deg, rgba(248, 250, 252, 0.3) 0%, transparent 100%)`
+          };
           animation: gentleShimmer 45s ease-in-out infinite;
           pointer-events: none;
         }
@@ -292,13 +317,16 @@ function App() {
         }
         
         .mg-login-card {
-          background: rgba(255, 255, 255, 0.07);
+          background: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.07)' 
+            : 'rgba(255, 255, 255, 0.9)'
+          };
           backdrop-filter: blur(30px);
           border-radius: 28px;
-          box-shadow: 
-            0 12px 40px 0 rgba(0, 0, 0, 0.35),
-            inset 0 2px 0 rgba(255, 255, 255, 0.12),
-            inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+          box-shadow: ${theme === 'dark' 
+            ? '0 12px 40px 0 rgba(0, 0, 0, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.1)' 
+            : '0 12px 40px 0 rgba(0, 0, 0, 0.1), inset 0 2px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 0 rgba(0, 0, 0, 0.05)'
+          };
           flex: 0 0 450px;
           max-width: 450px;
           margin: 0;
@@ -308,16 +336,19 @@ function App() {
           position: relative;
           padding: 80px 50px 50px 50px;
           box-sizing: border-box;
-          border: 1px solid rgba(255, 255, 255, 0.12);
+          border: 1px solid ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.12)' 
+            : 'rgba(30, 41, 59, 0.1)'
+          };
           transition: all 0.3s ease;
         }
         
         .mg-login-card:hover {
           transform: translateY(-2px);
-          box-shadow: 
-            0 16px 48px 0 rgba(0, 0, 0, 0.4),
-            inset 0 2px 0 rgba(255, 255, 255, 0.15),
-            inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+          box-shadow: ${theme === 'dark' 
+            ? '0 16px 48px 0 rgba(0, 0, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.15), inset 0 -1px 0 rgba(0, 0, 0, 0.1)' 
+            : '0 16px 48px 0 rgba(0, 0, 0, 0.15), inset 0 2px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 0 rgba(0, 0, 0, 0.05)'
+          };
         }
         .mg-login-logo {
           position: absolute;
@@ -371,18 +402,69 @@ function App() {
           font-weight: 800;
           letter-spacing: 3px;
           margin-bottom: 0.3em;
-          color: #ffffff;
+          color: ${theme === 'dark' ? '#ffffff' : '#1e293b'};
           text-align: center;
-          text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+          text-shadow: ${theme === 'dark' 
+            ? '0 2px 8px rgba(0, 0, 0, 0.5)' 
+            : '0 2px 8px rgba(0, 0, 0, 0.1)'
+          };
         }
         .mg-login-subtitle {
           font-size: 1.1rem;
-          color: rgba(255, 255, 255, 0.8);
+          color: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.8)' 
+            : 'rgba(30, 41, 59, 0.8)'
+          };
           font-style: italic;
-          margin-bottom: 2.5em;
+          margin-bottom: 1.5em;
           text-align: center;
-          text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+          text-shadow: ${theme === 'dark' 
+            ? '0 1px 4px rgba(0, 0, 0, 0.3)' 
+            : '0 1px 4px rgba(0, 0, 0, 0.1)'
+          };
           font-weight: 300;
+        }
+        
+        .mg-login-theme-toggle {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 2em;
+        }
+        
+        .mg-login-theme-btn {
+          background: ${theme === 'dark' 
+            ? 'rgba(59, 130, 246, 0.15)' 
+            : 'rgba(59, 130, 246, 0.1)'
+          };
+          backdrop-filter: blur(10px);
+          border: 1px solid ${theme === 'dark' 
+            ? 'rgba(59, 130, 246, 0.3)' 
+            : 'rgba(59, 130, 246, 0.2)'
+          };
+          border-radius: 10px;
+          padding: 6px 12px;
+          color: ${theme === 'dark' ? '#ffffff' : '#1e293b'};
+          font-size: 0.75rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          letter-spacing: 0.3px;
+        }
+        
+        .mg-login-theme-btn:hover {
+          background: ${theme === 'dark' 
+            ? 'rgba(59, 130, 246, 0.25)' 
+            : 'rgba(59, 130, 246, 0.15)'
+          };
+          border-color: ${theme === 'dark' 
+            ? 'rgba(59, 130, 246, 0.5)' 
+            : 'rgba(59, 130, 246, 0.3)'
+          };
+          transform: translateY(-2px);
+          box-shadow: ${theme === 'dark' 
+            ? '0 8px 25px rgba(0, 0, 0, 0.3)' 
+            : '0 8px 25px rgba(0, 0, 0, 0.1)'
+          };
         }
         .mg-login-form {
           width: 100%;
@@ -394,12 +476,18 @@ function App() {
         }
         .mg-login-input {
           border-radius: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          border: 1px solid ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.2)' 
+            : 'rgba(30, 41, 59, 0.2)'
+          };
           padding: 18px 24px;
           font-size: 1rem;
-          background: rgba(255, 255, 255, 0.1);
+          background: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.1)' 
+            : 'rgba(255, 255, 255, 0.9)'
+          };
           backdrop-filter: blur(10px);
-          color: #ffffff;
+          color: ${theme === 'dark' ? '#ffffff' : '#1e293b'};
           text-align: center;
           font-weight: 500;
           outline: none;
@@ -407,12 +495,24 @@ function App() {
           transition: all 0.3s ease;
         }
         .mg-login-input:focus {
-          border-color: rgba(255, 255, 255, 0.4);
-          background: rgba(255, 255, 255, 0.15);
-          box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+          border-color: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.4)' 
+            : 'rgba(96, 165, 250, 0.5)'
+          };
+          background: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.15)' 
+            : 'rgba(255, 255, 255, 0.95)'
+          };
+          box-shadow: ${theme === 'dark' 
+            ? '0 0 20px rgba(255, 255, 255, 0.1)' 
+            : '0 0 20px rgba(96, 165, 250, 0.2)'
+          };
         }
         .mg-login-input::placeholder {
-          color: rgba(255, 255, 255, 0.6);
+          color: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.6)' 
+            : 'rgba(30, 41, 59, 0.6)'
+          };
           font-weight: 400;
         }
         .mg-login-btnrow {
@@ -423,10 +523,16 @@ function App() {
         }
         .mg-login-btn {
           border-radius: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.3)' 
+            : 'rgba(30, 41, 59, 0.3)'
+          };
+          background: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.1)' 
+            : 'rgba(255, 255, 255, 0.9)'
+          };
           backdrop-filter: blur(10px);
-          color: #ffffff;
+          color: ${theme === 'dark' ? '#ffffff' : '#1e293b'};
           font-size: 0.9rem;
           font-weight: 600;
           padding: 14px 24px;
@@ -436,21 +542,45 @@ function App() {
           min-width: 110px;
         }
         .mg-login-btn-filled {
-          background: rgba(255, 255, 255, 0.2);
-          color: #ffffff;
-          border: 1px solid rgba(255, 255, 255, 0.4);
+          background: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.2)' 
+            : 'rgba(96, 165, 250, 0.1)'
+          };
+          color: ${theme === 'dark' ? '#ffffff' : '#1e40af'};
+          border: 1px solid ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.4)' 
+            : 'rgba(96, 165, 250, 0.3)'
+          };
         }
         .mg-login-btn-outline:hover {
-          background: rgba(255, 255, 255, 0.2);
-          border-color: rgba(255, 255, 255, 0.5);
+          background: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.2)' 
+            : 'rgba(255, 255, 255, 0.95)'
+          };
+          border-color: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.5)' 
+            : 'rgba(30, 41, 59, 0.5)'
+          };
           transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+          box-shadow: ${theme === 'dark' 
+            ? '0 8px 25px rgba(0, 0, 0, 0.3)' 
+            : '0 8px 25px rgba(0, 0, 0, 0.1)'
+          };
         }
         .mg-login-btn-filled:hover {
-          background: rgba(255, 255, 255, 0.25);
-          border-color: rgba(255, 255, 255, 0.6);
+          background: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.25)' 
+            : 'rgba(96, 165, 250, 0.2)'
+          };
+          border-color: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.6)' 
+            : 'rgba(96, 165, 250, 0.5)'
+          };
           transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+          box-shadow: ${theme === 'dark' 
+            ? '0 8px 25px rgba(0, 0, 0, 0.3)' 
+            : '0 8px 25px rgba(0, 0, 0, 0.1)'
+          };
         }
         .mg-login-error {
           color: #ff6b6b;

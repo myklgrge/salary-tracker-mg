@@ -15,10 +15,10 @@ const bonusOptions = [
   { label: '50% Bonus', value: 0.5 },
   { label: '80% Bonus', value: 0.8 },
   { label: '100% Bonus (Sunday)', value: 1.0 },
+  { label: '130% Bonus (Weekend)', value: 1.3 },
 ];
 
 const HUF_TO_INR = 0.23; // Example rate, update as needed
-const TAX_RATE = 0.335;
 
 export default function SalaryCalculator() {
   // Theme state for dark/light mode
@@ -41,6 +41,7 @@ export default function SalaryCalculator() {
   const [modalEntries, setModalEntries] = useState<DayEntry[]>([]);
   const [showInINR, setShowInINR] = useState(false);
   const [applyTax, setApplyTax] = useState(false);
+  const [taxPercentage, setTaxPercentage] = useState(33.5);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Firestore sync: load on mount, save on change
@@ -143,7 +144,7 @@ export default function SalaryCalculator() {
       total += base + bonus;
     }
   }
-  const taxed = applyTax ? total * (1 - TAX_RATE) : total;
+  const taxed = applyTax ? total * (1 - taxPercentage / 100) : total;
   const display = showInINR ? taxed * HUF_TO_INR : taxed;
 
   // Modal handlers
@@ -162,8 +163,8 @@ export default function SalaryCalculator() {
     updateCurrentMonthDays(newDays);
     closeModal();
   };
-  const addModalEntry = (isSunday: boolean) => {
-    setModalEntries(prev => [...prev, { hours: 0, bonus: isSunday ? 1.0 : 0 }]);
+  const addModalEntry = (isWeekend: boolean) => {
+    setModalEntries(prev => [...prev, { hours: 0, bonus: isWeekend ? 1.3 : 0 }]);
   };
   const updateModalEntry = (idx: number, field: 'hours' | 'bonus', value: number) => {
     setModalEntries(prev => prev.map((entry, i) => i === idx ? { ...entry, [field]: value } : entry));
@@ -224,16 +225,14 @@ export default function SalaryCalculator() {
               </div>
             )}
             
-            <div className="mg-theme-toggle">
+            <div className="mg-account-actions">
               <button
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="mg-theme-btn"
+                className="mg-logout-btn"
+                title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
               >
-                {theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode'}
+                {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
               </button>
-            </div>
-            
-            <div className="mg-account-actions">
               <button
                 onClick={handleLogout}
                 className="mg-logout-btn"
@@ -296,70 +295,92 @@ export default function SalaryCalculator() {
           </div>
           
           <div className="mg-salary-calendar">
-            <div className="mg-calendar-header">
+            <div className="mg-calendar-header-info">
               <h3 className="mg-calendar-title">Work Schedule</h3>
               <div className="mg-calendar-month">
                 {new Date(year, month).toLocaleString('default', { month: 'long', year: 'numeric' })}
               </div>
             </div>
             
-            <div className="mg-calendar-grid">
-              {/* Create columns for each day of the week */}
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dayName, dayIndex) => (
-                <div key={dayName} className="mg-calendar-column">
-                  <div className="mg-calendar-column-header">
+            <div className="mg-calendar-wrapper">
+              {/* Calendar header with day names */}
+              <div className="mg-calendar-header">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(dayName => (
+                  <div key={dayName} className="mg-calendar-header-day">
                     {dayName}
                   </div>
-                  {Array.from({ length: daysInMonth }, (_, i) => {
-                    const d = i + 1;
-                    const date = new Date(year, month, d);
-                    const weekday = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
-                    
-                    // Only render this day if it matches the current column
-                    if (weekday !== dayIndex) return null;
-                    
-                    const isSunday = weekday === 0;
-                    const isToday = (date.getFullYear() === new Date().getFullYear() && 
-                                   date.getMonth() === new Date().getMonth() && 
-                                   date.getDate() === new Date().getDate());
-                    
-                    const dayEntries = getCurrentMonthDays()[d] || [];
-                    const hasEntries = dayEntries.length > 0;
-                    
-                    let dayClass = 'mg-calendar-day';
-                    if (isSunday) dayClass += ' mg-calendar-sunday';
-                    if (isToday) dayClass += ' mg-calendar-today';
-                    if (hasEntries) dayClass += ' mg-calendar-has-entries';
-                    
-                    return (
-                      <div key={d} className={dayClass} onClick={() => openModal(d)}>
-                        <div className="mg-day-number">{d}</div>
-                        {hasEntries && (
-                          <div className="mg-day-entries">
-                            {dayEntries.map((entry, idx) => (
-                              <div key={idx} className="mg-day-entry">
-                                {entry.hours}h
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }).filter(Boolean)} {/* Remove null values */}
-                </div>
-              ))}
+                ))}
+              </div>
+              
+              {/* Calendar grid with traditional layout */}
+              <div className="mg-calendar-grid">
+                {/* Add empty cells for days before month starts */}
+                {Array.from({ length: new Date(year, month, 1).getDay() }, (_, i) => (
+                  <div key={`empty-${i}`} className="mg-calendar-day-empty"></div>
+                ))}
+                
+                {/* Render all days of the month */}
+                {Array.from({ length: daysInMonth }, (_, i) => {
+                  const d = i + 1;
+                  const date = new Date(year, month, d);
+                  const isSunday = date.getDay() === 0;
+                  const isToday = (date.getFullYear() === new Date().getFullYear() && 
+                                 date.getMonth() === new Date().getMonth() && 
+                                 date.getDate() === new Date().getDate());
+                  
+                  const dayEntries = getCurrentMonthDays()[d] || [];
+                  const hasEntries = dayEntries.length > 0;
+                  
+                  let dayClass = 'mg-calendar-day';
+                  if (isSunday) dayClass += ' mg-calendar-sunday';
+                  if (isToday) dayClass += ' mg-calendar-today';
+                  if (hasEntries) dayClass += ' mg-calendar-has-entries';
+                  
+                  return (
+                    <div key={d} className={dayClass} onClick={() => openModal(d)}>
+                      <div className="mg-day-number">{d}</div>
+                      {hasEntries && (
+                        <div className="mg-day-entries">
+                          {dayEntries.map((entry, idx) => (
+                            <div key={idx} className="mg-day-entry">
+                              {entry.hours}h
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
           
           <div className="mg-salary-options">
-            <label className="mg-salary-checkbox">
-              <input 
-                type="checkbox" 
-                checked={applyTax} 
-                onChange={e => setApplyTax(e.target.checked)} 
-              />
-              <span className="mg-checkbox-text">Apply 33.5% Tax</span>
-            </label>
+            <div className="mg-tax-option-group">
+              <label className="mg-salary-checkbox">
+                <input 
+                  type="checkbox" 
+                  checked={applyTax} 
+                  onChange={e => setApplyTax(e.target.checked)} 
+                />
+                <span className="mg-checkbox-text">Apply Tax</span>
+              </label>
+              {applyTax && (
+                <div className="mg-tax-input-group">
+                  <input 
+                    type="number" 
+                    value={taxPercentage}
+                    onChange={e => setTaxPercentage(Number(e.target.value))}
+                    className="mg-tax-input"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    placeholder="33.5"
+                  />
+                  <span className="mg-tax-percent">%</span>
+                </div>
+              )}
+            </div>
             <label className="mg-salary-checkbox">
               <input 
                 type="checkbox" 
@@ -422,9 +443,19 @@ export default function SalaryCalculator() {
                         onChange={e => updateModalEntry(idx, 'bonus', Number(e.target.value))}
                         className="mg-modal-input mg-bonus-select"
                       >
-                        {bonusOptions.map(opt => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
+                        {bonusOptions
+                          .filter(opt => {
+                            // Show 130% bonus only on weekends (Saturday=6, Sunday=0)
+                            if (opt.value === 1.3) {
+                              const dayOfWeek = new Date(year, month, modalDay).getDay();
+                              return dayOfWeek === 0 || dayOfWeek === 6;
+                            }
+                            return true; // Show all other options
+                          })
+                          .map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))
+                        }
                       </select>
                     </div>
                     
@@ -440,7 +471,11 @@ export default function SalaryCalculator() {
               ))}
               
               <button 
-                onClick={() => addModalEntry(new Date(year, month, modalDay).getDay() === 0)} 
+                onClick={() => {
+                  const dayOfWeek = new Date(year, month, modalDay).getDay();
+                  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday (0) or Saturday (6)
+                  addModalEntry(isWeekend);
+                }} 
                 className="mg-modal-add-btn"
               >
                 + Add Work Entry
@@ -706,49 +741,12 @@ export default function SalaryCalculator() {
           letter-spacing: 0.3px;
         }
         
-        .mg-theme-toggle {
-          margin-top: 15px;
-        }
-        
         .mg-account-actions {
           margin-top: 15px;
           display: flex;
           gap: 10px;
           justify-content: center;
           flex-wrap: wrap;
-        }
-        
-        .mg-theme-btn {
-          background: ${theme === 'dark' 
-            ? 'rgba(255, 255, 255, 0.1)' 
-            : 'rgba(30, 41, 59, 0.1)'
-          };
-          backdrop-filter: blur(10px);
-          border: 1px solid ${theme === 'dark' 
-            ? 'rgba(255, 255, 255, 0.2)' 
-            : 'rgba(30, 41, 59, 0.2)'
-          };
-          border-radius: 12px;
-          padding: 8px 16px;
-          color: ${theme === 'dark' ? '#ffffff' : '#1e293b'};
-          font-size: 0.8rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          letter-spacing: 0.3px;
-        }
-        
-        .mg-theme-btn:hover {
-          background: ${theme === 'dark' 
-            ? 'rgba(255, 255, 255, 0.15)' 
-            : 'rgba(30, 41, 59, 0.15)'
-          };
-          border-color: ${theme === 'dark' 
-            ? 'rgba(255, 255, 255, 0.3)' 
-            : 'rgba(30, 41, 59, 0.3)'
-          };
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         }
         
         .mg-logout-btn {
@@ -895,11 +893,17 @@ export default function SalaryCalculator() {
           margin-bottom: 20px;
         }
         
+        .mg-calendar-header-info {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+        
         .mg-calendar-title {
           font-size: 1.3rem;
           font-weight: 700;
           color: ${theme === 'dark' ? '#ffffff' : '#1e293b'};
           margin: 0 0 6px 0;
+          text-align: center;
           text-shadow: ${theme === 'dark' 
             ? '0 2px 8px rgba(0, 0, 0, 0.4)' 
             : '0 2px 8px rgba(0, 0, 0, 0.1)'
@@ -913,16 +917,50 @@ export default function SalaryCalculator() {
             : 'rgba(30, 41, 59, 0.8)'
           };
           font-weight: 500;
+          text-align: center;
           text-shadow: ${theme === 'dark' 
             ? '0 1px 3px rgba(0, 0, 0, 0.3)' 
             : '0 1px 3px rgba(0, 0, 0, 0.1)'
           };
         }
         
+        .mg-calendar-wrapper {
+          background: rgba(255, 255, 255, 0.05);
+          backdrop-filter: blur(15px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 16px;
+          padding: 20px;
+          margin-bottom: 30px;
+        }
+        
+        .mg-calendar-header {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          gap: 8px;
+          margin-bottom: 16px;
+        }
+        
+        .mg-calendar-header-day {
+          background: rgba(255, 255, 255, 0.15);
+          backdrop-filter: blur(15px);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 8px;
+          padding: 8px;
+          text-align: center;
+          font-weight: 700;
+          font-size: 0.85rem;
+          color: ${theme === 'dark' ? '#ffffff' : '#1e293b'};
+          text-shadow: ${theme === 'dark' 
+            ? '0 1px 3px rgba(0, 0, 0, 0.3)' 
+            : '0 1px 3px rgba(0, 0, 0, 0.1)'
+          };
+          letter-spacing: 0.5px;
+        }
+        
         .mg-calendar-grid {
           display: grid;
           grid-template-columns: repeat(7, 1fr);
-          gap: 12px;
+          gap: 8px;
           margin-bottom: 30px;
         }
         
@@ -947,45 +985,93 @@ export default function SalaryCalculator() {
           letter-spacing: 0.5px;
         }
         
-        .mg-calendar-day {
-          background: rgba(255, 255, 255, 0.05);
-          backdrop-filter: blur(15px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+        .mg-calendar-day-empty {
+          min-height: 50px;
+          margin-bottom: 4px;
+          background: transparent;
+          border: 1px dashed ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.1)' 
+            : 'rgba(30, 41, 59, 0.1)'
+          };
           border-radius: 10px;
-          padding: 8px 6px;
+          opacity: 0.3;
+        }
+        
+        .mg-calendar-day {
+          background: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.05)' 
+            : 'rgba(255, 255, 255, 0.8)'
+          };
+          backdrop-filter: blur(15px);
+          border: 1px solid ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.1)' 
+            : 'rgba(30, 41, 59, 0.1)'
+          };
+          border-radius: 10px;
+          padding: 10px 8px;
           cursor: pointer;
           transition: all 0.3s ease;
           text-align: center;
-          min-height: 50px;
+          min-height: 60px;
           display: flex;
           flex-direction: column;
-          justify-content: center;
+          justify-content: flex-start;
           align-items: center;
           position: relative;
-          margin-bottom: 4px;
+          aspect-ratio: 1;
         }
         
         .mg-calendar-day:hover {
-          background: rgba(255, 255, 255, 0.1);
-          border-color: rgba(255, 255, 255, 0.2);
+          background: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.1)' 
+            : 'rgba(255, 255, 255, 0.95)'
+          };
+          border-color: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.2)' 
+            : 'rgba(30, 41, 59, 0.2)'
+          };
           transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+          box-shadow: ${theme === 'dark' 
+            ? '0 8px 25px rgba(0, 0, 0, 0.3)' 
+            : '0 8px 25px rgba(0, 0, 0, 0.1)'
+          };
         }
         
         .mg-calendar-today {
-          background: rgba(96, 165, 250, 0.2) !important;
-          border-color: rgba(96, 165, 250, 0.4) !important;
-          box-shadow: 0 0 20px rgba(96, 165, 250, 0.3);
+          background: ${theme === 'dark' 
+            ? 'rgba(96, 165, 250, 0.2)' 
+            : 'rgba(96, 165, 250, 0.15)'
+          } !important;
+          border-color: ${theme === 'dark' 
+            ? 'rgba(96, 165, 250, 0.4)' 
+            : 'rgba(96, 165, 250, 0.5)'
+          } !important;
+          box-shadow: ${theme === 'dark' 
+            ? '0 0 20px rgba(96, 165, 250, 0.3)' 
+            : '0 0 15px rgba(96, 165, 250, 0.2)'
+          };
         }
         
         .mg-calendar-sunday {
-          background: rgba(248, 113, 113, 0.15);
-          border-color: rgba(248, 113, 113, 0.3);
+          background: ${theme === 'dark' 
+            ? 'rgba(248, 113, 113, 0.15)' 
+            : 'rgba(248, 113, 113, 0.1)'
+          };
+          border-color: ${theme === 'dark' 
+            ? 'rgba(248, 113, 113, 0.3)' 
+            : 'rgba(248, 113, 113, 0.4)'
+          };
         }
         
         .mg-calendar-has-entries {
-          background: rgba(34, 197, 94, 0.15);
-          border-color: rgba(34, 197, 94, 0.3);
+          background: ${theme === 'dark' 
+            ? 'rgba(34, 197, 94, 0.15)' 
+            : 'rgba(34, 197, 94, 0.1)'
+          };
+          border-color: ${theme === 'dark' 
+            ? 'rgba(34, 197, 94, 0.3)' 
+            : 'rgba(34, 197, 94, 0.4)'
+          };
         }
         
         .mg-day-number {
@@ -1067,6 +1153,47 @@ export default function SalaryCalculator() {
         .mg-checkbox-text {
           font-size: 0.9rem;
           letter-spacing: 0.2px;
+        }
+        
+        .mg-tax-option-group {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        
+        .mg-tax-input-group {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        
+        .mg-tax-input {
+          width: 60px;
+          padding: 4px 8px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 6px;
+          background: rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(15px);
+          color: ${theme === 'dark' ? '#ffffff' : '#1e293b'};
+          font-size: 0.85rem;
+          text-align: center;
+        }
+        
+        .mg-tax-input:focus {
+          outline: none;
+          border-color: rgba(96, 165, 250, 0.5);
+          background: rgba(255, 255, 255, 0.15);
+          box-shadow: 0 0 10px rgba(96, 165, 250, 0.2);
+        }
+        
+        .mg-tax-percent {
+          font-size: 0.85rem;
+          color: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.8)' 
+            : 'rgba(30, 41, 59, 0.8)'
+          };
+          font-weight: 500;
         }
         
         .mg-salary-total {
@@ -1151,7 +1278,10 @@ export default function SalaryCalculator() {
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(0, 0, 0, 0.7);
+          background: ${theme === 'dark' 
+            ? 'rgba(0, 0, 0, 0.7)' 
+            : 'rgba(0, 0, 0, 0.5)'
+          };
           backdrop-filter: blur(8px);
           display: flex;
           justify-content: center;
@@ -1161,19 +1291,26 @@ export default function SalaryCalculator() {
         }
         
         .mg-modal-card {
-          background: rgba(255, 255, 255, 0.08);
+          background: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.08)' 
+            : 'rgba(255, 255, 255, 0.95)'
+          };
           backdrop-filter: blur(30px);
-          border: 1px solid rgba(255, 255, 255, 0.15);
+          border: 1px solid ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.15)' 
+            : 'rgba(30, 41, 59, 0.1)'
+          };
           border-radius: 24px;
-          box-shadow: 
-            0 16px 48px 0 rgba(0, 0, 0, 0.4),
-            inset 0 2px 0 rgba(255, 255, 255, 0.1);
+          box-shadow: ${theme === 'dark' 
+            ? '0 16px 48px 0 rgba(0, 0, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)' 
+            : '0 16px 48px 0 rgba(0, 0, 0, 0.1), inset 0 2px 0 rgba(255, 255, 255, 0.8)'
+          };
           padding: 40px;
           width: 100%;
           max-width: 500px;
           max-height: 80vh;
           overflow-y: auto;
-          color: #ffffff;
+          color: ${theme === 'dark' ? '#ffffff' : '#1e293b'};
           font-family: 'Segoe UI', 'Inter', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
         }
         
@@ -1185,16 +1322,25 @@ export default function SalaryCalculator() {
         .mg-modal-title {
           font-size: 1.8rem;
           font-weight: 700;
-          color: #ffffff;
+          color: ${theme === 'dark' ? '#ffffff' : '#1e293b'};
           margin: 0 0 8px 0;
-          text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+          text-shadow: ${theme === 'dark' 
+            ? '0 2px 8px rgba(0, 0, 0, 0.4)' 
+            : '0 2px 8px rgba(0, 0, 0, 0.1)'
+          };
         }
         
         .mg-modal-subtitle {
           font-size: 1rem;
-          color: rgba(255, 255, 255, 0.7);
+          color: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.7)' 
+            : 'rgba(30, 41, 59, 0.7)'
+          };
           font-weight: 500;
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+          text-shadow: ${theme === 'dark' 
+            ? '0 1px 3px rgba(0, 0, 0, 0.3)' 
+            : '0 1px 3px rgba(0, 0, 0, 0.1)'
+          };
         }
         
         .mg-modal-content {
@@ -1203,17 +1349,29 @@ export default function SalaryCalculator() {
         
         .mg-modal-empty {
           text-align: center;
-          color: rgba(255, 255, 255, 0.6);
+          color: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.6)' 
+            : 'rgba(30, 41, 59, 0.6)'
+          };
           font-style: italic;
           padding: 20px;
-          background: rgba(255, 255, 255, 0.05);
+          background: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.05)' 
+            : 'rgba(30, 41, 59, 0.05)'
+          };
           border-radius: 12px;
           margin-bottom: 20px;
         }
         
         .mg-modal-entry {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.05)' 
+            : 'rgba(255, 255, 255, 0.8)'
+          };
+          border: 1px solid ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.1)' 
+            : 'rgba(30, 41, 59, 0.1)'
+          };
           border-radius: 16px;
           padding: 20px;
           margin-bottom: 16px;
@@ -1236,21 +1394,33 @@ export default function SalaryCalculator() {
         }
         
         .mg-modal-label {
-          color: rgba(255, 255, 255, 0.8);
+          color: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.8)' 
+            : 'rgba(30, 41, 59, 0.8)'
+          };
           font-weight: 600;
           margin-bottom: 6px;
           font-size: 0.9rem;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+          text-shadow: ${theme === 'dark' 
+            ? '0 1px 2px rgba(0, 0, 0, 0.3)' 
+            : '0 1px 2px rgba(0, 0, 0, 0.1)'
+          };
         }
         
         .mg-modal-input {
           border-radius: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          border: 1px solid ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.2)' 
+            : 'rgba(30, 41, 59, 0.2)'
+          };
           padding: 12px 16px;
           font-size: 0.95rem;
-          background: rgba(255, 255, 255, 0.1);
+          background: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.1)' 
+            : 'rgba(255, 255, 255, 0.9)'
+          };
           backdrop-filter: blur(10px);
-          color: #ffffff;
+          color: ${theme === 'dark' ? '#ffffff' : '#1e293b'};
           font-weight: 500;
           outline: none;
           transition: all 0.3s ease;
@@ -1262,8 +1432,11 @@ export default function SalaryCalculator() {
         }
         
         .mg-modal-input option {
-          background: rgba(30, 30, 30, 0.95);
-          color: #ffffff;
+          background: ${theme === 'dark' 
+            ? 'rgba(30, 30, 30, 0.95)' 
+            : 'rgba(255, 255, 255, 0.95)'
+          };
+          color: ${theme === 'dark' ? '#ffffff' : '#1e293b'};
           padding: 12px 16px;
           font-size: 0.95rem;
           font-weight: 500;
@@ -1272,7 +1445,10 @@ export default function SalaryCalculator() {
         }
         
         .mg-modal-input option:hover {
-          background: rgba(60, 60, 60, 0.95);
+          background: ${theme === 'dark' 
+            ? 'rgba(60, 60, 60, 0.95)' 
+            : 'rgba(96, 165, 250, 0.1)'
+          };
         }
         
         .mg-modal-input option:checked {
@@ -1291,7 +1467,10 @@ export default function SalaryCalculator() {
         .mg-bonus-select option {
           padding: 8px 12px;
           font-size: 0.9rem;
-          background: rgba(40, 40, 40, 0.95);
+          background: ${theme === 'dark' 
+            ? 'rgba(40, 40, 40, 0.95)' 
+            : 'rgba(255, 255, 255, 0.95)'
+          };
           border-radius: 4px;
         }
         
@@ -1346,7 +1525,7 @@ export default function SalaryCalculator() {
           background: rgba(248, 113, 113, 0.2);
           border: 1px solid rgba(248, 113, 113, 0.3);
           border-radius: 8px;
-          color: #ffffff;
+          color: ${theme === 'dark' ? '#ffffff' : '#991b1b'};
           cursor: pointer;
           font-size: 1rem;
           font-weight: 600;
@@ -1366,7 +1545,7 @@ export default function SalaryCalculator() {
           background: rgba(34, 197, 94, 0.2);
           border: 1px solid rgba(34, 197, 94, 0.3);
           border-radius: 14px;
-          color: #ffffff;
+          color: ${theme === 'dark' ? '#ffffff' : '#065f46'};
           cursor: pointer;
           font-size: 1rem;
           font-weight: 600;
@@ -1380,7 +1559,10 @@ export default function SalaryCalculator() {
           background: rgba(34, 197, 94, 0.3);
           border-color: rgba(34, 197, 94, 0.5);
           transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+          box-shadow: ${theme === 'dark' 
+            ? '0 8px 25px rgba(0, 0, 0, 0.3)' 
+            : '0 8px 25px rgba(0, 0, 0, 0.1)'
+          };
         }
         
         .mg-modal-actions {
@@ -1391,10 +1573,16 @@ export default function SalaryCalculator() {
         
         .mg-modal-btn {
           border-radius: 14px;
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.3)' 
+            : 'rgba(30, 41, 59, 0.3)'
+          };
+          background: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.1)' 
+            : 'rgba(255, 255, 255, 0.9)'
+          };
           backdrop-filter: blur(10px);
-          color: #ffffff;
+          color: ${theme === 'dark' ? '#ffffff' : '#1e293b'};
           font-size: 1rem;
           font-weight: 600;
           padding: 14px 28px;
@@ -1406,20 +1594,33 @@ export default function SalaryCalculator() {
         .mg-modal-btn-save {
           background: rgba(34, 197, 94, 0.2);
           border-color: rgba(34, 197, 94, 0.4);
+          color: ${theme === 'dark' ? '#ffffff' : '#065f46'};
         }
         
         .mg-modal-btn-save:hover {
           background: rgba(34, 197, 94, 0.3);
           border-color: rgba(34, 197, 94, 0.6);
           transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+          box-shadow: ${theme === 'dark' 
+            ? '0 8px 25px rgba(0, 0, 0, 0.3)' 
+            : '0 8px 25px rgba(0, 0, 0, 0.1)'
+          };
         }
         
         .mg-modal-btn-cancel:hover {
-          background: rgba(255, 255, 255, 0.15);
-          border-color: rgba(255, 255, 255, 0.5);
+          background: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.15)' 
+            : 'rgba(255, 255, 255, 0.95)'
+          };
+          border-color: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.5)' 
+            : 'rgba(30, 41, 59, 0.5)'
+          };
           transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+          box-shadow: ${theme === 'dark' 
+            ? '0 8px 25px rgba(0, 0, 0, 0.3)' 
+            : '0 8px 25px rgba(0, 0, 0, 0.1)'
+          };
         }
         
         /* Delete Account Modal Styles */
@@ -1674,6 +1875,21 @@ export default function SalaryCalculator() {
           .mg-salary-checkbox input[type="checkbox"] {
             width: 16px;
             height: 16px;
+          }
+          
+          .mg-tax-option-group {
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+          }
+          
+          .mg-tax-input-group {
+            gap: 6px;
+          }
+          
+          .mg-tax-input {
+            width: 55px;
+            font-size: 0.8rem;
           }
           
           .mg-salary-total {
