@@ -666,6 +666,7 @@ export default function SalaryCalculator() {
           transition: all 0.3s ease;
           max-height: 85vh;
           overflow-y: auto;
+          overflow-x: hidden; /* Prevent horizontal overflow */
           -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
         }
         
@@ -931,11 +932,12 @@ export default function SalaryCalculator() {
           border-radius: 16px;
           padding: 20px;
           margin-bottom: 30px;
+          overflow: hidden; /* Avoid horizontal spill on narrow screens */
         }
         
         .mg-calendar-header {
           display: grid;
-          grid-template-columns: repeat(7, 1fr);
+          grid-template-columns: repeat(7, minmax(0, 1fr));
           gap: 8px;
           margin-bottom: 16px;
         }
@@ -955,11 +957,12 @@ export default function SalaryCalculator() {
             : '0 1px 3px rgba(0, 0, 0, 0.1)'
           };
           letter-spacing: 0.5px;
+          min-width: 0; /* Prevent content from forcing overflow */
         }
         
         .mg-calendar-grid {
           display: grid;
-          grid-template-columns: repeat(7, 1fr);
+          grid-template-columns: repeat(7, minmax(0, 1fr));
           gap: 8px;
           margin-bottom: 30px;
         }
@@ -995,6 +998,9 @@ export default function SalaryCalculator() {
           };
           border-radius: 10px;
           opacity: 0.3;
+          aspect-ratio: 1; /* Match day square */
+          min-width: 0; /* Prevent overflow */
+          overflow: hidden;
         }
         
         .mg-calendar-day {
@@ -1019,6 +1025,8 @@ export default function SalaryCalculator() {
           align-items: center;
           position: relative;
           aspect-ratio: 1;
+          min-width: 0; /* Allow grid items to shrink without overflow */
+          overflow: hidden; /* Contain inner content */
         }
         
         .mg-calendar-day:hover {
@@ -1830,8 +1838,19 @@ export default function SalaryCalculator() {
             font-size: 16px; /* Prevents zoom on iOS */
           }
           
+          /* Keep header perfectly aligned with grid on mobile */
+          .mg-calendar-header {
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 4px;
+          }
+
+          .mg-calendar-header-day {
+            padding: 6px 4px;
+            font-size: 0.75rem;
+          }
+
           .mg-calendar-grid {
-            grid-template-columns: repeat(7, 1fr);
+            grid-template-columns: repeat(7, minmax(0, 1fr));
             gap: 4px;
           }
           
@@ -1893,17 +1912,17 @@ export default function SalaryCalculator() {
           }
           
           .mg-salary-total {
-            padding: 20px 15px;
+            padding: 16px 12px;
             border-radius: 14px;
           }
           
           .mg-total-label {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             margin-bottom: 8px;
           }
           
           .mg-total-amount {
-            font-size: 1.5rem;
+            font-size: 1.35rem;
             line-height: 1.2;
           }
           
