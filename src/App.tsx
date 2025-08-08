@@ -231,15 +231,18 @@ function App() {
           margin: 0;
           padding: 0;
           box-sizing: border-box;
-          width: 100vw;
-          height: 100vh;
+          width: 100%; /* avoid 100vw white sliver */
+          min-height: 100%;
           overflow-x: hidden;
+          -webkit-text-size-adjust: 100%;
+          background: ${theme === 'dark' ? '#0a0a0a' : '#f8fafc'};
         }
         
         .mg-login-bg {
+          min-height: 100svh; /* modern viewport unit */
           min-height: 100vh;
-          width: 100vw;
-          max-width: 100vw;
+          width: 100%;
+          max-width: 100%;
           background: ${theme === 'dark' 
             ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 25%, #2a2a2a 50%, #3a3a3a 75%, #4a4a4a 100%)'
             : 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 25%, #cbd5e1 50%, #94a3b8 75%, #64748b 100%)'
@@ -251,12 +254,12 @@ function App() {
           align-items: center;
           font-family: Inter, system-ui, Arial, sans-serif;
           overflow-x: hidden;
-          padding: 0;
+          padding: 0 12px; /* small side padding to avoid overflow rounding */
           margin: 0;
           box-sizing: border-box;
           position: fixed;
-          top: 0;
-          left: 0;
+          inset: 0; /* replace top/left with inset to avoid 100vw rounding */
+          padding-bottom: env(safe-area-inset-bottom);
         }
         
         .mg-login-bg::before {
@@ -313,10 +316,10 @@ function App() {
           justify-content: center;
           position: relative;
           z-index: 2;
-          padding: 40px 20px;
+          padding: 40px 12px;
         }
         
-        .mg-login-card {
+  .mg-login-card {
           background: ${theme === 'dark' 
             ? 'rgba(255, 255, 255, 0.07)' 
             : 'rgba(255, 255, 255, 0.9)'
@@ -341,6 +344,7 @@ function App() {
             : 'rgba(30, 41, 59, 0.1)'
           };
           transition: all 0.3s ease;
+          overflow: hidden; /* prevent inner overflow on mobile */
         }
         
         .mg-login-card:hover {
@@ -728,9 +732,13 @@ function App() {
           left: 0;
           right: 0;
           margin-top: 16px;
-          background: rgba(255, 255, 255, 0.06);
+          background: ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.06)'
+            : 'rgba(255, 255, 255, 0.95)'};
           backdrop-filter: blur(30px);
-          border: 1px solid rgba(255, 255, 255, 0.12);
+          border: 1px solid ${theme === 'dark' 
+            ? 'rgba(255, 255, 255, 0.12)'
+            : 'rgba(30, 41, 59, 0.12)'};
           border-radius: 26px;
           box-shadow: 
             0 16px 48px 0 rgba(0, 0, 0, 0.4),
@@ -738,11 +746,12 @@ function App() {
           padding: 32px;
           z-index: 10;
           animation: slideDown 0.3s ease;
-          color: #ffffff;
+          color: ${theme === 'dark' ? '#ffffff' : '#1e293b'};
           font-family: 'Segoe UI', 'Inter', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
           display: flex;
           align-items: center;
           gap: 28px;
+          overflow: hidden; /* contain inner overflow */
         }
         
         @keyframes slideDown {
@@ -854,7 +863,7 @@ function App() {
         
         .mg-profile-handle {
           font-size: 1.1rem;
-          color: #ffffff;
+          color: ${theme === 'dark' ? '#ffffff' : '#0f172a'};
           margin-bottom: 12px;
           font-weight: 700;
           text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
@@ -864,25 +873,26 @@ function App() {
         }
         
         .mg-profile-intro {
-          font-size: 0.88rem;
-          line-height: 1.5;
-          color: rgba(255, 255, 255, 0.85);
+          font-size: 0.95rem;
+          line-height: 1.6;
+          color: ${theme === 'dark' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(30, 41, 59, 0.9)'};
           margin-bottom: 16px;
           text-align: left;
-          background: rgba(255, 255, 255, 0.06);
+          background: ${theme === 'dark' ? 'rgba(255, 255, 255, 0.06)' : 'rgba(255, 255, 255, 0.98)'};
           padding: 16px;
           border-radius: 14px;
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid ${theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(30, 41, 59, 0.12)'};
           font-weight: 400;
           font-family: 'Segoe UI', 'Inter', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+          text-shadow: ${theme === 'dark' ? '0 1px 2px rgba(0, 0, 0, 0.3)' : 'none'};
+          overflow-wrap: anywhere;
         }
         
         .mg-profile-signature {
           font-family: 'Segoe UI', 'Inter', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
           font-size: 1rem;
-          color: #ffffff;
+          color: ${theme === 'dark' ? '#ffffff' : '#0f172a'};
           margin-bottom: 12px;
           font-weight: 600;
           text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
@@ -895,21 +905,22 @@ function App() {
         }
         
         .mg-profile-website a {
-          color: #ffffff;
+          color: ${theme === 'dark' ? '#ffffff' : '#1e293b'};
           text-decoration: none;
           font-size: 0.85rem;
-          background: rgba(255, 255, 255, 0.1);
+          background: ${theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.98)'};
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.15);
+          border: 1px solid ${theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(30, 41, 59, 0.12)'};
           padding: 12px 20px;
           border-radius: 12px;
           transition: all 0.3s ease;
           display: inline-block;
-          font-weight: 500;
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+          font-weight: 600;
+          text-shadow: ${theme === 'dark' ? '0 1px 3px rgba(0, 0, 0, 0.3)' : 'none'};
           letter-spacing: 0.2px;
           font-family: 'Segoe UI', 'Inter', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
           text-transform: uppercase;
+          overflow-wrap: anywhere;
         }
         
         .mg-profile-website a:hover {
@@ -925,17 +936,17 @@ function App() {
             flex-direction: column;
             max-width: 500px;
             gap: 30px;
-            padding: 20px;
+            padding: 12px;
           }
           
           .mg-login-bg {
-            padding: 15px;
+            padding: 10px 8px;
           }
           
           .mg-login-card {
             flex: none;
             max-width: 100%;
-            padding: 60px 35px 40px 35px;
+            padding: 48px 20px 28px 20px;
           }
           
           .mg-creator-section {
@@ -948,6 +959,10 @@ function App() {
             position: relative;
             top: 0;
             margin-top: 20px;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 18px;
+            gap: 16px;
           }
           
           .mg-login-form {
