@@ -323,7 +323,7 @@ export default function SalaryCalculator() {
                 {Array.from({ length: daysInMonth }, (_, i) => {
                   const d = i + 1;
                   const date = new Date(year, month, d);
-                  const isSunday = date.getDay() === 0;
+                  const isWeekend = date.getDay() === 0 || date.getDay() === 6; // Sunday=0, Saturday=6
                   const isToday = (date.getFullYear() === new Date().getFullYear() && 
                                  date.getMonth() === new Date().getMonth() && 
                                  date.getDate() === new Date().getDate());
@@ -332,7 +332,7 @@ export default function SalaryCalculator() {
                   const hasEntries = dayEntries.length > 0;
                   
                   let dayClass = 'mg-calendar-day';
-                  if (isSunday) dayClass += ' mg-calendar-sunday';
+                  if (isWeekend) dayClass += ' mg-calendar-sunday';
                   if (isToday) dayClass += ' mg-calendar-today';
                   if (hasEntries) dayClass += ' mg-calendar-has-entries';
                   
@@ -543,11 +543,13 @@ export default function SalaryCalculator() {
           margin: 0;
           padding: 0;
           box-sizing: border-box;
-          width: 100vw;
-          height: 100vh;
+          width: 100%; /* avoid 100vw scrollbar white line */
+          min-height: 100%;
           overflow-x: hidden;
           -webkit-text-size-adjust: 100%;
           -ms-text-size-adjust: 100%;
+          overscroll-behavior-y: contain;
+          background-color: ${theme === 'dark' ? '#0a0a0a' : '#f5f5f5'}; /* avoid white sliver */
         }
         
         /* Mobile viewport fix */
@@ -559,9 +561,10 @@ export default function SalaryCalculator() {
         
         .mg-salary-bg {
           min-height: 100vh;
+          min-height: 100svh; /* modern viewport unit */
           min-height: -webkit-fill-available; /* iOS Safari fix */
-          width: 100vw;
-          max-width: 100vw;
+          width: 100%;
+          max-width: 100%;
           background: ${theme === 'dark' 
             ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 25%, #2a2a2a 50%, #3a3a3a 75%, #4a4a4a 100%)'
             : 'linear-gradient(135deg, #f5f5f5 0%, #e5e5e5 25%, #d5d5d5 50%, #c5c5c5 75%, #b5b5b5 100%)'
@@ -577,8 +580,7 @@ export default function SalaryCalculator() {
           margin: 0;
           box-sizing: border-box;
           position: fixed;
-          top: 0;
-          left: 0;
+          inset: 0; /* cover full viewport without 100vw rounding */
           -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
         }
         
@@ -657,7 +659,7 @@ export default function SalaryCalculator() {
           display: flex;
           flex-direction: column;
           position: relative;
-          padding: 40px 35px 35px 35px;
+          padding: 40px 35px calc(35px + env(safe-area-inset-bottom)) 35px; /* avoid bottom UI overlap */
           box-sizing: border-box;
           border: 1px solid ${theme === 'dark' 
             ? 'rgba(255, 255, 255, 0.12)' 
@@ -1080,6 +1082,21 @@ export default function SalaryCalculator() {
             ? 'rgba(34, 197, 94, 0.3)' 
             : 'rgba(34, 197, 94, 0.4)'
           };
+        }
+
+        /* Weekend (Sat/Sun) with entries: darker amber for stronger emphasis */
+        .mg-calendar-sunday.mg-calendar-has-entries {
+          /* #f59e0b (amber-500) with a touch more opacity */
+          background: ${theme === 'dark'
+            ? 'rgba(245, 158, 11, 0.35)'
+            : 'rgba(245, 158, 11, 0.26)'};
+          /* Border with a deeper amber #d97706 */
+          border-color: ${theme === 'dark'
+            ? 'rgba(217, 119, 6, 0.65)'
+            : 'rgba(217, 119, 6, 0.55)'};
+          box-shadow: ${theme === 'dark'
+            ? '0 0 14px rgba(245, 158, 11, 0.24)'
+            : '0 0 10px rgba(245, 158, 11, 0.18)'};
         }
         
         .mg-day-number {
@@ -1786,7 +1803,7 @@ export default function SalaryCalculator() {
 
         @media (max-width: 768px) {
           .mg-salary-bg {
-            padding: 10px;
+            padding: 10px 8px; /* slightly smaller to avoid horizontal rounding */
           }
           
           .mg-salary-card {
