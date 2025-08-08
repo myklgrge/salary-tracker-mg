@@ -13,7 +13,8 @@ const bonusOptions = [
   { label: 'No Bonus', value: 0 },
   { label: '30% Bonus', value: 0.3 },
   { label: '50% Bonus', value: 0.5 },
-  { label: '200% Bonus (Sunday)', value: 2.0 },
+  { label: '80% Bonus', value: 0.8 },
+  { label: '100% Bonus (Sunday)', value: 1.0 },
 ];
 
 const HUF_TO_INR = 0.23; // Example rate, update as needed
@@ -32,7 +33,8 @@ export default function SalaryCalculator() {
   const [month, setMonth] = useState(today.getMonth());
   const [hourly, setHourly] = useState(0);
   type DayEntry = { hours: number; bonus: number };
-  const [days, setDays] = useState<{ [day: number]: DayEntry[] }>({});
+  // Changed data structure: yearData[year][month][day] = DayEntry[]
+  const [yearData, setYearData] = useState<{ [year: number]: { [month: number]: { [day: number]: DayEntry[] } } }>({});
   const [loadingCloud, setLoadingCloud] = useState(true);
   const [initialLoad, setInitialLoad] = useState(true);
   const [modalDay, setModalDay] = useState<number | null>(null);
@@ -59,20 +61,33 @@ export default function SalaryCalculator() {
           setYear(data.year ?? today.getFullYear());
           setMonth(data.month ?? today.getMonth());
           setHourly(data.hourly ?? 0);
-          setDays(data.days ?? {});
+          // Handle both old and new data structures
+          if (data.yearData) {
+            setYearData(data.yearData);
+          } else if (data.days) {
+            // Convert old format to new format
+            const newYearData = {
+              [data.year ?? today.getFullYear()]: {
+                [data.month ?? today.getMonth()]: data.days
+              }
+            };
+            setYearData(newYearData);
+          } else {
+            setYearData({});
+          }
         } else {
           // New user: set defaults
           setYear(today.getFullYear());
           setMonth(today.getMonth());
           setHourly(0);
-          setDays({});
+          setYearData({});
         }
       } catch (e: unknown) {
         console.error('Error fetching data:', e);
         setYear(today.getFullYear());
         setMonth(today.getMonth());
         setHourly(0);
-        setDays({});
+        setYearData({});
       } finally {
         setLoadingCloud(false);
         setInitialLoad(false);
@@ -90,21 +105,38 @@ export default function SalaryCalculator() {
     const ref = doc(db, 'salaryData', auth.currentUser.uid);
     (async () => {
       try {
-        console.log('Saving to Firestore:', { year, month, hourly, days });
-        await setDoc(ref, { year, month, hourly, days });
+        console.log('Saving to Firestore:', { year, month, hourly, yearData });
+        await setDoc(ref, { year, month, hourly, yearData });
         console.log('Saved to Firestore successfully');
       } catch (err) {
         console.error('Error saving to Firestore:', err);
       }
     })();
-  }, [year, month, hourly, days, loadingCloud, initialLoad]);
+  }, [year, month, hourly, yearData, loadingCloud, initialLoad]);
 
   const daysInMonth = getDaysInMonth(year, month);
 
+  // Helper function to get current month's days
+  const getCurrentMonthDays = () => {
+    return yearData[year]?.[month] || {};
+  };
+
+  // Helper function to update current month's days
+  const updateCurrentMonthDays = (newDays: { [day: number]: DayEntry[] }) => {
+    setYearData(prev => ({
+      ...prev,
+      [year]: {
+        ...prev[year],
+        [month]: newDays
+      }
+    }));
+  };
+
   // Calculate total salary
   let total = 0;
+  const currentMonthDays = getCurrentMonthDays();
   for (let d = 1; d <= daysInMonth; d++) {
-    const entries = days[d] || [];
+    const entries = currentMonthDays[d] || [];
     for (const entry of entries) {
       const base = entry.hours * hourly;
       const bonus = base * entry.bonus;
@@ -117,21 +149,21 @@ export default function SalaryCalculator() {
   // Modal handlers
   const openModal = (d: number) => {
     setModalDay(d);
-    setModalEntries(days[d] ? [...days[d]] : []);
+    const currentMonthDays = getCurrentMonthDays();
+    setModalEntries(currentMonthDays[d] ? [...currentMonthDays[d]] : []);
   };
   const closeModal = () => {
     setModalDay(null);
     setModalEntries([]);
   };
   const saveModal = () => {
-    setDays(prev => {
-      const newDays = { ...prev, [modalDay!]: modalEntries.filter(e => e.hours > 0) };
-      return newDays;
-    });
+    const currentMonthDays = getCurrentMonthDays();
+    const newDays = { ...currentMonthDays, [modalDay!]: modalEntries.filter(e => e.hours > 0) };
+    updateCurrentMonthDays(newDays);
     closeModal();
   };
   const addModalEntry = (isSunday: boolean) => {
-    setModalEntries(prev => [...prev, { hours: 0, bonus: isSunday ? 2.0 : 0 }]);
+    setModalEntries(prev => [...prev, { hours: 0, bonus: isSunday ? 1.0 : 0 }]);
   };
   const updateModalEntry = (idx: number, field: 'hours' | 'bonus', value: number) => {
     setModalEntries(prev => prev.map((entry, i) => i === idx ? { ...entry, [field]: value } : entry));
@@ -272,39 +304,50 @@ export default function SalaryCalculator() {
             </div>
             
             <div className="mg-calendar-grid">
-              {Array.from({ length: daysInMonth }, (_, i) => {
-                const d = i + 1;
-                const date = new Date(year, month, d);
-                const weekday = date.toLocaleString('default', { weekday: 'short' });
-                const isSunday = date.getDay() === 0;
-                const isToday = (date.getFullYear() === new Date().getFullYear() && 
-                               date.getMonth() === new Date().getMonth() && 
-                               date.getDate() === new Date().getDate());
-                
-                const dayEntries = days[d] || [];
-                const hasEntries = dayEntries.length > 0;
-                
-                let dayClass = 'mg-calendar-day';
-                if (isSunday) dayClass += ' mg-calendar-sunday';
-                if (isToday) dayClass += ' mg-calendar-today';
-                if (hasEntries) dayClass += ' mg-calendar-has-entries';
-                
-                return (
-                  <div key={d} className={dayClass} onClick={() => openModal(d)}>
-                    <div className="mg-day-number">{d}</div>
-                    <div className="mg-day-weekday">{weekday}</div>
-                    {hasEntries && (
-                      <div className="mg-day-entries">
-                        {dayEntries.map((entry, idx) => (
-                          <div key={idx} className="mg-day-entry">
-                            {entry.hours}h
-                          </div>
-                        ))}
-                      </div>
-                    )}
+              {/* Create columns for each day of the week */}
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dayName, dayIndex) => (
+                <div key={dayName} className="mg-calendar-column">
+                  <div className="mg-calendar-column-header">
+                    {dayName}
                   </div>
-                );
-              })}
+                  {Array.from({ length: daysInMonth }, (_, i) => {
+                    const d = i + 1;
+                    const date = new Date(year, month, d);
+                    const weekday = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+                    
+                    // Only render this day if it matches the current column
+                    if (weekday !== dayIndex) return null;
+                    
+                    const isSunday = weekday === 0;
+                    const isToday = (date.getFullYear() === new Date().getFullYear() && 
+                                   date.getMonth() === new Date().getMonth() && 
+                                   date.getDate() === new Date().getDate());
+                    
+                    const dayEntries = getCurrentMonthDays()[d] || [];
+                    const hasEntries = dayEntries.length > 0;
+                    
+                    let dayClass = 'mg-calendar-day';
+                    if (isSunday) dayClass += ' mg-calendar-sunday';
+                    if (isToday) dayClass += ' mg-calendar-today';
+                    if (hasEntries) dayClass += ' mg-calendar-has-entries';
+                    
+                    return (
+                      <div key={d} className={dayClass} onClick={() => openModal(d)}>
+                        <div className="mg-day-number">{d}</div>
+                        {hasEntries && (
+                          <div className="mg-day-entries">
+                            {dayEntries.map((entry, idx) => (
+                              <div key={idx} className="mg-day-entry">
+                                {entry.hours}h
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }).filter(Boolean)} {/* Remove null values */}
+                </div>
+              ))}
             </div>
           </div>
           
@@ -377,7 +420,7 @@ export default function SalaryCalculator() {
                       <select
                         value={entry.bonus}
                         onChange={e => updateModalEntry(idx, 'bonus', Number(e.target.value))}
-                        className="mg-modal-input"
+                        className="mg-modal-input mg-bonus-select"
                       >
                         {bonusOptions.map(opt => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -878,26 +921,48 @@ export default function SalaryCalculator() {
         
         .mg-calendar-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-          gap: 8px;
+          grid-template-columns: repeat(7, 1fr);
+          gap: 12px;
           margin-bottom: 30px;
+        }
+        
+        .mg-calendar-column {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        
+        .mg-calendar-column-header {
+          background: rgba(255, 255, 255, 0.15);
+          backdrop-filter: blur(15px);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 12px;
+          padding: 12px 8px;
+          text-align: center;
+          font-weight: 700;
+          font-size: 0.9rem;
+          color: #ffffff;
+          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+          margin-bottom: 8px;
+          letter-spacing: 0.5px;
         }
         
         .mg-calendar-day {
           background: rgba(255, 255, 255, 0.05);
           backdrop-filter: blur(15px);
           border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
-          padding: 12px 8px;
+          border-radius: 10px;
+          padding: 8px 6px;
           cursor: pointer;
           transition: all 0.3s ease;
           text-align: center;
-          min-height: 65px;
+          min-height: 50px;
           display: flex;
           flex-direction: column;
           justify-content: center;
           align-items: center;
           position: relative;
+          margin-bottom: 4px;
         }
         
         .mg-calendar-day:hover {
@@ -1190,6 +1255,81 @@ export default function SalaryCalculator() {
           outline: none;
           transition: all 0.3s ease;
           box-sizing: border-box;
+        }
+        
+        .mg-modal-input select {
+          min-height: 120px;
+        }
+        
+        .mg-modal-input option {
+          background: rgba(30, 30, 30, 0.95);
+          color: #ffffff;
+          padding: 12px 16px;
+          font-size: 0.95rem;
+          font-weight: 500;
+          border: none;
+          margin: 2px 0;
+        }
+        
+        .mg-modal-input option:hover {
+          background: rgba(60, 60, 60, 0.95);
+        }
+        
+        .mg-modal-input option:checked {
+          background: rgba(96, 165, 250, 0.8);
+          color: #ffffff;
+          font-weight: 600;
+        }
+        
+        .mg-bonus-select {
+          padding: 12px 16px;
+          font-size: 0.95rem;
+          line-height: 1.4;
+          min-height: auto;
+        }
+        
+        .mg-bonus-select option {
+          padding: 8px 12px;
+          font-size: 0.9rem;
+          background: rgba(40, 40, 40, 0.95);
+          border-radius: 4px;
+        }
+        
+        .mg-bonus-select option:hover {
+          background: rgba(96, 165, 250, 0.3);
+        }
+        
+        /* Improve all select dropdowns */
+        select {
+          appearance: none;
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
+          background-repeat: no-repeat;
+          background-position: right 12px center;
+          background-size: 16px;
+          padding-right: 40px;
+        }
+        
+        /* Make sure all bonus dropdowns are readable */
+        select[value*="."] option,
+        select option {
+          background: rgba(30, 30, 30, 0.95) !important;
+          color: #ffffff !important;
+          padding: 10px 16px !important;
+          font-size: 0.9rem !important;
+          font-weight: 500 !important;
+          line-height: 1.3 !important;
+        }
+        
+        select option:hover,
+        select option:focus {
+          background: rgba(96, 165, 250, 0.4) !important;
+        }
+        
+        select option:checked {
+          background: rgba(96, 165, 250, 0.7) !important;
+          font-weight: 600 !important;
         }
         
         .mg-modal-input-small {
@@ -1490,8 +1630,14 @@ export default function SalaryCalculator() {
           }
           
           .mg-calendar-grid {
-            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-            gap: 6px;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+          }
+          
+          .mg-calendar-column-header {
+            padding: 8px 4px;
+            font-size: 0.8rem;
+            margin-bottom: 4px;
           }
           
           .mg-calendar-day {
